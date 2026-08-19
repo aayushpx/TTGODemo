@@ -22,7 +22,6 @@
 #include <esp_http_server.h>
 #include "mqtt_client.h"
 #include "FreeSansBold24pt7b.h"
-#include <driver/touch_pad.h>
 
 #include "graphics3d.h"
 #include "input_output.h"

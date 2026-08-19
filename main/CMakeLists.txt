@@ -1,0 +1,40 @@
+idf_component_register(
+  SRCS
+  "main.c"
+  "accelerometer.c"
+  "albany.c"
+  "boids.c"
+  "bubble.c"
+  "demos.c"
+  "graphics3d.c"
+  "image_wave.c"
+  "input_output.c"
+  "networking.c"
+  "pwm.c"
+  "rgb_led.c"
+  "spaceship.c"
+  "webpage.c"
+  "wifi.c"
+
+  INCLUDE_DIRS
+  "."
+
+  REQUIRES
+  TDisplayGraphics
+  driver
+  esp_driver_gpio
+  esp_driver_ledc
+  esp_driver_rmt
+  esp_driver_i2c
+  esp_driver_touch_sens
+  esp_adc
+  esp_driver_mcpwm
+  esp_wifi
+  mqtt
+  nvs_flash
+  esp_timer
+  esp_http_server
+  esp_http_client
+  esp_rom
+  wpa_supplicant
+)

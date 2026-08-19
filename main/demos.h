@@ -5,7 +5,7 @@ void image_wave_demo();
 void sensors_demo();
 void teapots_demo();
 void bubble_demo();
-void wifi_scan();
+void wifi_scan(int setap);
 void wifi_connect(int onlyconnect);
 int wifi_connected();
 void wifi_disconnect();

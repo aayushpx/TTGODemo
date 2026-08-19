@@ -318,7 +318,7 @@ const int COLS=12;
 const int DEL_KEY = 0x7f;
 const int SHIFT_KEY = 0x80;
 const int ENTER_KEY = 0x81;
-const char QWERTY_KEYS[2][48] = {"1234567890-=qwertyuiop[]asdfghjkl;'/\x80zxcvbnm,.\x7f\x81",
+const char QWERTY_KEYS[2][49] = {"1234567890-=qwertyuiop[]asdfghjkl;'/\x80zxcvbnm,.\x7f\x81",
                         "!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:\"?\x80ZXCVBNM<>\x7f\x81"};
 
 void draw_keyboard(int topy, int highlight, int alt) {

@@ -20,7 +20,6 @@
 #include "lwip/sockets.h"
 #include <esp_http_server.h>
 #include "mqtt_client.h"
-#include <driver/touch_pad.h>
 #include "esp_eap_client.h"
 
 #include "graphics3d.h"
@@ -112,7 +111,7 @@ void init_wifi(wifi_mode_type mode) {
     uint8_t protocol=(WIFI_PROTOCOL_11B|WIFI_PROTOCOL_11G|WIFI_PROTOCOL_11N);//|WIFI_PROTOCOL_LR);
     if(mode==ACCESS_POINT) {
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
-        esp_wifi_set_protocol(ESP_IF_WIFI_AP,protocol);
+        esp_wifi_set_protocol(WIFI_IF_AP,protocol);
         #define SSID "ESP32"
         wifi_config_t wifi_config = { .ap = {
                 .ssid = SSID,
@@ -126,7 +125,7 @@ void init_wifi(wifi_mode_type mode) {
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config)); 
     } else {
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-        esp_wifi_set_protocol(ESP_IF_WIFI_STA,protocol);
+        esp_wifi_set_protocol(WIFI_IF_STA,protocol);
         char ssid[32];
         storage_read_string("ssid","MasseyWifi",ssid,sizeof(ssid));
         char password[64];
@@ -137,7 +136,7 @@ void init_wifi(wifi_mode_type mode) {
         strncpy((char *)wifi_config.sta.ssid,ssid,sizeof(wifi_config.sta.ssid));
         strncpy((char *)wifi_config.sta.password,password,sizeof(wifi_config.sta.password));
         wifi_config.sta.channel=6;
-        ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
         if(strlen(username)!=0) {
             ESP_ERROR_CHECK( esp_eap_client_set_username((uint8_t *)username, strlen(username)) );
             ESP_ERROR_CHECK( esp_eap_client_set_password((uint8_t *)password, strlen(password)) );

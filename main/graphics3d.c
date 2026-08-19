@@ -21,11 +21,22 @@ static const float specularstrength=0.5f;
 
 // objects are drawn using some lists of quads sorted in z order.  
 typedef  struct quadtype {uint16_t p[8]; uint16_t col; uint16_t next;}  __attribute__ ((packed)) quadtype;
-enum {MAXQUADS=16*32*4};
+// enum {MAXQUADS=16*32*4};
+// enum {MAXQUADS = 16*32*2};
+// enum {MAXQUADS = 1056};
+enum {MAXQUADS = 4096};
 
 static int nquads;
-static quadtype *quads;
-static uint16_t *quad_lists; 
+// static quadtype *quads;
+// static uint16_t *quad_lists; 
+
+static quadtype quads_storage[MAXQUADS];
+static uint16_t quad_lists_storage[256];
+
+static quadtype *quads = quads_storage;
+static uint16_t *quad_lists = quad_lists_storage;
+
+static int quad_overflows;
 
 static void maketrotationmatrix(vec3f rotation, vec2f pos, float size) {
     position=pos;
@@ -48,41 +59,161 @@ static void maketrotationmatrix(vec3f rotation, vec2f pos, float size) {
 }
 
 // add a quad to one of the lists and work out what colour to draw it.
+// static void add_quad(const vec3f p0, const vec3f p1, const vec3f p2, const vec3f p3, const vec3f material_colour) {
+//   if(p0.x<0 && p1.x<0 && p2.x<0 && p3.x<0) return;
+//   if(p0.y<0 && p1.y<0 && p2.y<0 && p3.y<0) return;
+//   if(p0.x>display_width && p1.x>display_width && p2.x>display_width && p3.x>display_width) return;
+//   if(p0.y>display_height && p1.y>display_height && p2.y>display_height && p3.y>display_height) return;
+//   vec3f normal=cross3d(sub3d(p2,p0),sub3d(p3,p0));
+//   // don't draw it if it's facing away from us.
+//   if(normal.z<=0) return;
+//   normal=normalise(normal);
+//   if(nquads>=MAXQUADS) {
+//     return;
+//   }
+//   float dp=dot(normal,lightdir);
+//   float diff=clampf(dp,0,1.0);
+//   // diffuse lighting
+//   vec3f diffuse=mul3df(diff,material_colour);
+//   // specular lighting
+//   float spec=clampf(2.0f*dp*normal.z-lightdir.z,0,2);
+//   spec=spec*spec;
+//   spec=spec*spec;
+//   spec=spec*spec;
+//   spec=specularstrength*spec;
+//   vec3f specular=mul3df(spec,light_colour);
+//   vec3f res=add3d(mul3df(ambient_strength,material_colour),add3d(diffuse,specular));
+//   uint16_t colour=rgbToColour(clampf(res.x,0,255),clampf(res.y,0,255),clampf(res.z,0,255));
+//   // use average z value for the quad as the list index.
+//   // so they are drawn with the closest last
+//   uint8_t zindex=((p0.z+p1.z+p2.z+p3.z)/4)+128;
+//
+//   // static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
+//   // taskENTER_CRITICAL(&spinlock);
+//   // quads[nquads++]=(quadtype){{p0.x,p0.y,p1.x,p1.y,p2.x,p2.y,p3.x,p3.y},
+//   //                     colour,quad_lists[zindex]};
+//   // quad_lists[zindex]=nquads-1;
+//   // taskEXIT_CRITICAL(&spinlock);
+//   static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
+//
+//   taskENTER_CRITICAL(&spinlock);
+//
+//   // if (nquads >= MAXQUADS) {
+//   //   taskEXIT_CRITICAL(&spinlock);
+//   //   return;
+//   // }
+//
+//   if (nquads >= MAXQUADS) {
+//     static int warned = 0;
+//     if (!warned) {
+//       printf("WARNING: MAXQUADS hit at %d\n", nquads);
+//       warned = 1;
+//     }
+//     taskEXIT_CRITICAL(&spinlock);
+//     return;
+//   }
+//
+//   int qi = nquads++;
+//
+//   quads[qi] = (quadtype){
+//     {p0.x,p0.y,p1.x,p1.y,p2.x,p2.y,p3.x,p3.y},
+//     colour,
+//     quad_lists[zindex]
+//   };
+//
+//   quad_lists[zindex] = qi;
+//
+//   taskEXIT_CRITICAL(&spinlock);
+// }
 static void add_quad(const vec3f p0, const vec3f p1, const vec3f p2, const vec3f p3, const vec3f material_colour) {
-    if(p0.x<0 && p1.x<0 && p2.x<0 && p3.x<0) return;
-    if(p0.y<0 && p1.y<0 && p2.y<0 && p3.y<0) return;
-    if(p0.x>display_width && p1.x>display_width && p2.x>display_width && p3.x>display_width) return;
-    if(p0.y>display_height && p1.y>display_height && p2.y>display_height && p3.y>display_height) return;
-    vec3f normal=cross3d(sub3d(p2,p0),sub3d(p3,p0));
-    // don't draw it if it's facing away from us.
-    if(normal.z<=0) return;
-    normal=normalise(normal);
-    if(nquads>=MAXQUADS) {
-        return;
-    }
-    float dp=dot(normal,lightdir);
-    float diff=clampf(dp,0,1.0);
-    // diffuse lighting
-    vec3f diffuse=mul3df(diff,material_colour);
-    // specular lighting
-    float spec=clampf(2.0f*dp*normal.z-lightdir.z,0,2);
-    spec=spec*spec;
-    spec=spec*spec;
-    spec=spec*spec;
-    spec=specularstrength*spec;
-    vec3f specular=mul3df(spec,light_colour);
-    vec3f res=add3d(mul3df(ambient_strength,material_colour),add3d(diffuse,specular));
-    uint16_t colour=rgbToColour(clampf(res.x,0,255),clampf(res.y,0,255),clampf(res.z,0,255));
-    // use average z value for the quad as the list index.
-    // so they are drawn with the closest last
-    uint8_t zindex=((p0.z+p1.z+p2.z+p3.z)/4)+128;
+  if(p0.x<0 && p1.x<0 && p2.x<0 && p3.x<0) return;
+  if(p0.y<0 && p1.y<0 && p2.y<0 && p3.y<0) return;
+  if(p0.x>display_width && p1.x>display_width && p2.x>display_width && p3.x>display_width) return;
+  if(p0.y>display_height && p1.y>display_height && p2.y>display_height && p3.y>display_height) return;
 
-    static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
-    taskENTER_CRITICAL(&spinlock);
-    quads[nquads++]=(quadtype){{p0.x,p0.y,p1.x,p1.y,p2.x,p2.y,p3.x,p3.y},
-                        colour,quad_lists[zindex]};
-    quad_lists[zindex]=nquads-1;
+  vec3f normal=cross3d(sub3d(p2,p0),sub3d(p3,p0));
+
+  if(normal.z<=0) return;
+
+  normal=normalise(normal);
+
+  float dp=dot(normal,lightdir);
+  float diff=clampf(dp,0,1.0);
+
+  vec3f diffuse=mul3df(diff,material_colour);
+
+  float spec=clampf(2.0f*dp*normal.z-lightdir.z,0,2);
+  spec=spec*spec;
+  spec=spec*spec;
+  spec=spec*spec;
+  spec=specularstrength*spec;
+
+  vec3f specular=mul3df(spec,light_colour);
+  vec3f res=add3d(
+    mul3df(ambient_strength,material_colour),
+    add3d(diffuse,specular)
+  );
+
+  uint16_t colour=rgbToColour(
+    clampf(res.x,0,255),
+    clampf(res.y,0,255),
+    clampf(res.z,0,255)
+  );
+
+  // uint8_t zindex=((p0.z+p1.z+p2.z+p3.z)/4)+128;
+  float avgz = (p0.z + p1.z + p2.z + p3.z) * 0.25f;
+
+  int zi = (int)(avgz + 128.0f);
+
+  if (zi < 0) zi = 0;
+  if (zi > 255) zi = 255;
+
+  uint8_t zindex = (uint8_t)zi;
+
+  static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
+  // taskENTER_CRITICAL(&spinlock);
+  //
+  // if (nquads >= MAXQUADS) {
+  //   taskEXIT_CRITICAL(&spinlock);
+  //   return;
+  // }
+  //
+  // int qi = nquads++;
+  //
+  // quads[qi] = (quadtype){
+  //   {p0.x,p0.y,p1.x,p1.y,p2.x,p2.y,p3.x,p3.y},
+  //   colour,
+  //   quad_lists[zindex]
+  // };
+  //
+  // quad_lists[zindex] = qi;
+  //
+  // if (nquads >= MAXQUADS) {
+  //   quad_overflows++;
+  //   taskEXIT_CRITICAL(&spinlock);
+  //   return;
+  // }
+  //
+  // taskEXIT_CRITICAL(&spinlock);
+  taskENTER_CRITICAL(&spinlock);
+
+  if (nquads >= MAXQUADS) {
+    quad_overflows++;
     taskEXIT_CRITICAL(&spinlock);
+    return;
+  }
+
+  int qi = nquads++;
+
+  quads[qi] = (quadtype){
+    {p0.x,p0.y,p1.x,p1.y,p2.x,p2.y,p3.x,p3.y},
+    colour,
+    quad_lists[zindex]
+  };
+
+  quad_lists[zindex] = qi;
+
+  taskEXIT_CRITICAL(&spinlock);
 }
 
 static void draw_all_quads() {
@@ -182,15 +313,63 @@ static void add_bezier_patch(vec3f const p[4][4], vec3f material_colour) {
     } 
 }
 
+// static void quad_init() {
+//     quads=malloc(sizeof(quadtype)*MAXQUADS);
+//     quad_lists=malloc(sizeof(uint16_t)*256);
+//     for(int i=0;i<256;i++)
+//         quad_lists[i]=65535;
+// }
+
+// static void quad_init() {
+//
+//   nquads = 0; quad_overflows = 0;
+//   quads = malloc(sizeof(quadtype) * MAXQUADS);
+//   quad_lists = malloc(sizeof(uint16_t) * 256);
+//
+//   printf("quad_init: quads=%p quad_lists=%p\n", quads, quad_lists);
+//
+//   if (quads == NULL || quad_lists == NULL) {
+//     printf("ERROR: quad allocation failed!\n");
+//     abort();
+//   }
+//
+//   for (int i = 0; i < 256; i++)
+//     quad_lists[i] = 65535;
+// }
+// static void quad_free() {
+//     free(quad_lists);
+//     free(quads);
+// }
+
 static void quad_init() {
-    quads=malloc(sizeof(quadtype)*MAXQUADS);
-    quad_lists=malloc(sizeof(uint16_t)*256);
-    for(int i=0;i<256;i++)
-        quad_lists[i]=65535;
+  printf("quad_init: quads=%p quad_lists=%p\n", quads, quad_lists);
+
+  for (int i = 0; i < 256; i++) {
+    quad_lists[i] = 65535;
+  }
+
+  nquads = 0;
+  quad_overflows = 0;
 }
+
+// static void quad_free() {
+//   printf("quad_free: nquads=%d overflows=%d\n", nquads, quad_overflows);
+//
+//   free(quad_lists);
+//   quad_lists = NULL;
+//
+//   free(quads);
+//   quads = NULL;
+//
+//   printf("quad_free done\n");
+// }
+
 static void quad_free() {
-    free(quad_lists);
-    free(quads);
+  printf("quad_free: nquads=%d overflows=%d\n", nquads, quad_overflows);
+
+  nquads = 0;
+
+  printf("quad_free done\n");
 }
 
 static EventGroupHandle_t teapot_event = NULL;
@@ -247,8 +426,8 @@ void draw_teapot(vec2f pos, float size, vec3f rot, colourtype col, int multi_col
         TaskHandle_t xHandle = NULL;
         task1Queue=xQueueCreate(4,4);
         task2Queue=xQueueCreate(4,4);
-        xTaskCreatePinnedToCore( teapotTask, "Teapot1", 2560, (void *)task1Queue, 5, &xHandle ,1);
-        xTaskCreatePinnedToCore( teapotTask, "Teapot2", 2560, (void *)task2Queue, 5, &xHandle ,0);
+        xTaskCreatePinnedToCore( teapotTask, "Teapot1", 8192, (void *)task1Queue, 5, &xHandle ,1);
+        xTaskCreatePinnedToCore( teapotTask, "Teapot2", 8192, (void *)task2Queue, 5, &xHandle ,0);
     }
     quad_init();
     material_colour=(vec3f){col.r,col.g,col.b};
