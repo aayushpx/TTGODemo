@@ -4,3 +4,7 @@
 .vscode/launch.json
 .vscode/ipch
 .cache
+build/
+sdkconfig.emulator
+sdkconfig.tdisplay
+sdkconfig.tdisplay_s3
