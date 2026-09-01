@@ -1,42 +1,21 @@
-#include <stdint.h>
-#include <stdio.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-
-#define GPIO_OUT_W1TS    0x60004008
-#define GPIO_OUT_W1TC    0x6000400C
-#define GPIO_ENABLE_W1TS 0x60004024
-#define GPIO_IN          0x6000403C
-
-volatile uint32_t *GPIO_OUTPUT_W1TS =
-  (volatile uint32_t *)GPIO_OUT_W1TS;
-
-volatile uint32_t *GPIO_OUTPUT_W1TC =
-  (volatile uint32_t *)GPIO_OUT_W1TC;
-
-volatile uint32_t *GPIO_ENABLE =
-  (volatile uint32_t *)GPIO_ENABLE_W1TS;
-
-volatile uint32_t *GPIO_INPUT =
-  (volatile uint32_t *)GPIO_IN;
-
+#include "freertos/FreeRTOS.h"
+#include "graphics.h"
+#include "fonts.h"
 void app_main(void)
 {
-  *GPIO_ENABLE = (1 << 4);
-
+  graphics_init();
+  cls(0);
+  setFont(FONT_DEJAVU18);
+  print_xy("Hello World!", CENTER, CENTER);
+  flip_frame();
+  volatile uint32_t *en = (uint32_t *) 0x3FF44020;
+  volatile uint32_t *out = (uint32_t *) 0x3FF44004;
+  *en |= (1 << 4);    
+  // Configure GPIO 4 as an output
   while (1) {
-
-    uint32_t input = *GPIO_INPUT;
-
-    if (input & (1 << 0)) {
-      *GPIO_OUTPUT_W1TS = (1 << 4);
-    } else {
-      *GPIO_OUTPUT_W1TC = (1 << 4);
-    }
-
-    printf("GPIO0 = %lu\n",
-           (unsigned long)(input & 1));
-
-    vTaskDelay(pdMS_TO_TICKS(100));
+    *out |= (1 << 4);  // Set GPIO 4 HIGH
+    vTaskDelay(pdMS_TO_TICKS(500));
+    *out &= ~(1 << 4);  // Set GPIO 4 LOW
+    vTaskDelay(pdMS_TO_TICKS(500));
   }
 }
