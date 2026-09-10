@@ -20,11 +20,12 @@
 //   }
 // }
 
-#include <soc/uart_struct.h>
-#include <esp_timer.h>
-#include <graphics.h>
-#include <fonts.h>
-#include <driver/gpio.h>
+#include <soc/uart_struct.h> // UART stuff
+#include <esp_timer.h> // ESP timer functions
+#include <graphics.h> // framebuffer, drawing, display dimensions
+#include <fonts.h> // fonts 
+#include <driver/gpio.h> // GPIO/button input
+
 void app_main() {
   graphics_init();
   uint64_t current_time, last_time=esp_timer_get_time();
