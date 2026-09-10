@@ -28,15 +28,15 @@
 
 void app_main() {
   graphics_init();
-  uint64_t current_time, last_time=esp_timer_get_time();
-  for(int i=0;i<135*240;i++) {
-    frame_buffer[i]=i*2;
+  uint64_t current_time, last_time=esp_timer_get_time(); // returns time since boot in microseconds 
+  for(int i=0;i<display_width*display_height;i++) {
+    frame_buffer[i]=i^2;
   }
-  flip_frame();
-  while(gpio_get_level(0));
-  setFont(FONT_UBUNTU16);
+  flip_frame();  // double buffer 
+  while(gpio_get_level(0)); // wait for button press 
+  setFont(FONT_UBUNTU16); 
   while(1) {
-    cls(0);
+    cls(0);  // clear screen 
     for(int i=0;i<10;i++) {
       draw_line(rand()%display_width,rand()%display_height,
                 rand()%display_width,rand()%display_height,rand());
