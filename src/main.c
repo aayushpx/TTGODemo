@@ -1,50 +1,23 @@
-// #include "freertos/FreeRTOS.h"
-// #include "graphics.h"
-// #include "fonts.h"
-// void app_main(void)
-// {
-//   graphics_init();
-//   cls(0);
-//   setFont(FONT_DEJAVU18);
-//   print_xy("Hello World!", CENTER, CENTER);
-//   flip_frame();
-//   volatile uint32_t *en = (uint32_t *) 0x3FF44020;
-//   volatile uint32_t *out = (uint32_t *) 0x3FF44004;
-//   *en |= (1 << 4);    
-//   // Configure GPIO 4 as an output
-//   while (1) {
-//     *out |= (1 << 4);  // Set GPIO 4 HIGH
-//     vTaskDelay(pdMS_TO_TICKS(500));
-//     *out &= ~(1 << 4);  // Set GPIO 4 LOW
-//     vTaskDelay(pdMS_TO_TICKS(500));
-//   }
-// }
+#include "freertos/FreeRTOS.h"
+#include "freertos/idf_additions.h"
+#include "freertos/projdefs.h"
+#include "graphics.h"
+#include "fonts.h"
+#include "driver/gpio.h"
 
-#include <soc/uart_struct.h> // UART stuff
-#include <esp_timer.h> // ESP timer functions
-#include <graphics.h> // framebuffer, drawing, display dimensions
-#include <fonts.h> // fonts 
-#include <driver/gpio.h> // GPIO/button input
-
-void app_main() {
+void app_main(void) {
   graphics_init();
-  uint64_t current_time, last_time=esp_timer_get_time(); // returns time since boot in microseconds 
-  for(int i=0;i<display_width*display_height;i++) {
-    frame_buffer[i]=i^2;
-  }
-  flip_frame();  // double buffer 
-  while(gpio_get_level(0)); // wait for button press 
-  setFont(FONT_UBUNTU16); 
+  cls(0);
+  setFont(FONT_DEJAVU18);
+  print_xy("Namaste", CENTER, CENTER);
+  flip_frame();
+
+  gpio_set_direction(38, GPIO_MODE_OUTPUT); // backlight
+
   while(1) {
-    cls(0);  // clear screen 
-    for(int i=0;i<10;i++) {
-      draw_line(rand()%display_width,rand()%display_height,
-                rand()%display_width,rand()%display_height,rand());
-    }
-    current_time = esp_timer_get_time();
-    draw_rectangle(0,0,80,16,rgbToColour(30,30,100));
-    gprintf("FPS:%.2f\n", 1.0e6f / (current_time - last_time));
-    last_time = current_time;
-    flip_frame();
+    gpio_set_level(38, 1); 
+    vTaskDelay(pdMS_TO_TICKS(500));
+    gpio_set_level(38, 0); 
+    vTaskDelay(pdMS_TO_TICKS(500));
   }
 }
